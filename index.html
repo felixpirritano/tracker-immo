@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracker Immo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F4F1EB; --surface: #FFFFFF; --surface2: #EDEAE2;
+  --border: #DAD6CC; --text: #1C1A17; --text2: #6B6760; --text3: #A8A49D;
+  --accent: #2D5A3D; --accent-light: #EAF2ED; --accent-border: #B8D4C0; --accent-text: #1A3D27;
+  --red: #8B2E2E; --red-light: #F5EAEA; --blue: #1A3D5C; --blue-light: #E8EFF5;
+  --orange: #7A4A00; --orange-light: #FFF4E0;
+  --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+.layout { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 320px; flex-shrink: 0; background: var(--surface);
+  border-right: 1px solid var(--border); padding: 1.5rem;
+  display: flex; flex-direction: column; gap: 1.5rem;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.logo { font-family: var(--mono); font-size: 1rem; font-weight: 500; }
+.logo span { color: var(--text3); }
+.section-title {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); margin-bottom: 0.75rem;
+}
+.config-box {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+}
+.config-box label { font-size: 10px; font-family: var(--mono); color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+.config-box input {
+  width: 100%; padding: 7px 10px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--surface); color: var(--text);
+  font-family: var(--mono); font-size: 11px; outline: none;
+}
+.config-box input:focus { border-color: var(--accent); }
+.config-hint { font-size: 11px; color: var(--text3); line-height: 1.5; }
+.config-save {
+  padding: 6px 14px; font-size: 12px; font-family: var(--mono);
+  background: var(--accent-light); color: var(--accent-text);
+  border: 1px solid var(--accent-border); border-radius: 6px; cursor: pointer; align-self: flex-start;
+}
+.config-save:hover { background: var(--accent); color: white; border-color: var(--accent); }
+.bm-steps { font-size: 12.5px; color: var(--text2); line-height: 2; margin-bottom: 0.875rem; }
+.bm-steps b { color: var(--text); font-weight: 500; }
+.bm-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+  background: var(--accent-light); color: var(--accent-text);
+  border: 1px solid var(--accent-border); border-radius: 6px;
+  font-size: 13px; font-weight: 500; text-decoration: none; cursor: grab; user-select: none;
+}
+.bm-hint { font-size: 11px; color: var(--text3); margin-top: 8px; font-family: var(--mono); }
+.paste-zone {
+  border: 1.5px dashed var(--border); border-radius: 8px; padding: 14px;
+  cursor: pointer; outline: none; transition: border-color 0.15s, background 0.15s;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.paste-zone:hover, .paste-zone:focus { border-color: var(--accent); background: var(--accent-light); }
+.paste-zone-label { font-size: 13px; font-weight: 500; }
+.paste-zone-sub { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.paste-btn {
+  align-self: flex-start; padding: 6px 14px; font-size: 12px; font-family: var(--mono);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer; color: var(--text2); margin-top: 4px;
+}
+.paste-btn:hover { background: var(--surface); color: var(--text); }
+
+/* FORM */
+.form-wrap { display: none; flex-direction: column; gap: 10px; }
+.form-wrap.visible { display: flex; }
+.field label {
+  display: block; font-size: 10px; font-family: var(--mono); color: var(--text3);
+  margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.06em;
+}
+.field input, .field textarea {
+  width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--surface2); color: var(--text); font-family: var(--sans); font-size: 13px; outline: none;
+}
+.field input:focus, .field textarea:focus { border-color: var(--accent); background: var(--surface); }
+.field textarea { resize: vertical; min-height: 50px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* Checkbox appelé */
+.check-field { display: flex; align-items: center; gap: 10px; }
+.check-field input[type=checkbox] {
+  width: 16px; height: 16px; accent-color: var(--accent);
+  cursor: pointer; flex-shrink: 0;
+}
+.check-field label {
+  font-size: 13px; color: var(--text2); cursor: pointer;
+  margin: 0; text-transform: none; letter-spacing: 0;
+}
+
+.submit-btn {
+  width: 100%; padding: 10px; background: var(--accent); color: white;
+  border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;
+}
+.submit-btn:hover { opacity: 0.88; }
+.submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cancel-btn {
+  width: 100%; padding: 8px; background: none; color: var(--text3);
+  border: 1px solid var(--border); border-radius: 6px; font-size: 13px; cursor: pointer;
+}
+.cancel-btn:hover { color: var(--text); background: var(--surface2); }
+.status { font-size: 11px; font-family: var(--mono); color: var(--text3); min-height: 18px; padding: 2px 0; }
+.status.ok { color: var(--accent); }
+.status.err { color: var(--red); }
+.status.loading { color: var(--blue); }
+
+/* MAIN */
+.main { flex: 1; padding: 1.75rem 2rem; min-width: 0; }
+.main-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.main-header h1 { font-family: var(--mono); font-size: 13px; color: var(--text2); font-weight: 400; }
+.toolbar { display: flex; gap: 8px; align-items: center; }
+.count-tag { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.refresh-btn, .export-btn {
+  font-family: var(--mono); font-size: 11px; padding: 6px 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer; color: var(--text2);
+}
+.refresh-btn:hover, .export-btn:hover { background: var(--accent-light); color: var(--accent-text); border-color: var(--accent-border); }
+
+/* TABLE */
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 900px; }
+thead th {
+  text-align: left; padding: 10px 12px; font-size: 10px; font-family: var(--mono);
+  font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3);
+  background: var(--surface2); border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--bg); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--surface2); }
+tbody td { padding: 10px 12px; vertical-align: middle; font-size: 13px; }
+.empty-state { text-align: center; padding: 5rem 2rem; color: var(--text3); font-size: 12px; font-family: var(--mono); }
+
+.thumb { width: 110px; height: 82px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); display: block; }
+.no-photo { width: 110px; height: 82px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+
+.titre-link { font-size: 13px; color: var(--blue); text-decoration: none; display: block; line-height: 1.4; word-break: break-word; }
+.titre-link:hover { text-decoration: underline; }
+.titre-text { font-size: 13px; display: block; line-height: 1.4; word-break: break-word; }
+
+.price { font-family: var(--mono); font-weight: 500; white-space: nowrap; }
+.price-m2 { font-family: var(--mono); font-size: 12px; color: var(--text2); white-space: nowrap; }
+.maps-link { font-size: 12px; color: var(--blue); text-decoration: none; line-height: 1.4; display: block; word-break: break-word; }
+.maps-link:hover { text-decoration: underline; }
+.notes-cell { font-size: 12px; color: var(--text2); max-width: 150px; line-height: 1.5; }
+.date-cell { font-family: var(--mono); font-size: 11px; color: var(--text3); white-space: nowrap; }
+
+/* Appelé badge */
+.badge-appele {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 20px; font-size: 11px; font-family: var(--mono);
+  cursor: pointer; border: none; background: none; white-space: nowrap;
+}
+.badge-appele.oui { background: var(--accent-light); color: var(--accent-text); }
+.badge-appele.non { background: var(--surface2); color: var(--text3); }
+.badge-appele:hover { opacity: 0.75; }
+
+/* RDV */
+.rdv-cell { font-size: 12px; font-family: var(--mono); color: var(--text2); white-space: nowrap; }
+.rdv-cell.has-rdv { color: var(--orange); background: var(--orange-light); padding: 3px 8px; border-radius: 20px; display: inline-block; }
+
+.action-btns { display: flex; gap: 2px; }
+.icon-btn { background: none; border: none; cursor: pointer; color: var(--text3); padding: 3px 7px; border-radius: 4px; font-size: 13px; }
+.icon-btn:hover { color: var(--text); background: var(--surface2); }
+.icon-btn.del:hover { color: var(--red); background: var(--red-light); }
+.icon-btn.edit:hover { color: var(--blue); background: var(--blue-light); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">tracker_immo <span>/ partagé</span></div>
+
+    <div>
+      <div class="section-title">⚙ Configuration</div>
+      <div class="config-box">
+        <label>URL du Google Apps Script</label>
+        <input type="url" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        <span class="config-hint">L'URL obtenue après déploiement du script.</span>
+        <button class="config-save" onclick="saveConfig()">Enregistrer</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">📋 Bookmarklet</div>
+      <p class="bm-steps"><b>Ctrl+Maj+B</b> pour afficher ta barre de favoris,<br>puis glisse ce bouton dedans :</p>
+      <a class="bm-btn" id="bm-link">📋 Copier annonce</a>
+      <p class="bm-hint">← glisse dans ta barre de favoris</p>
+    </div>
+
+    <div>
+      <div class="section-title">📥 Colle l'annonce</div>
+      <div class="paste-zone" id="pasteZone" tabindex="0">
+        <div class="paste-zone-label">Ctrl+V après le favoris</div>
+        <div class="paste-zone-sub">clique ici puis Ctrl+V</div>
+        <button class="paste-btn" onclick="pasteFromClipboard(event)">Coller</button>
+      </div>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="form-wrap" id="formWrap">
+      <div class="section-title" id="formTitle">✏ Vérifie et valide</div>
+      <div class="field"><label>URL</label><input id="f-url" type="url" placeholder="https://..."></div>
+      <div class="field"><label>Titre</label><input id="f-titre" type="text" placeholder="ex: 3p 65m² Paris 11e"></div>
+      <div class="row2">
+        <div class="field"><label>Prix</label><input id="f-prix" type="text" placeholder="350 000 €"></div>
+        <div class="field"><label>Surface</label><input id="f-surface" type="text" placeholder="65 m²"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Pièces</label><input id="f-pieces" type="text" placeholder="3"></div>
+        <div class="field"><label>Localisation</label><input id="f-loc" type="text" placeholder="Paris 11e"></div>
+      </div>
+      <div class="field"><label>Adresse précise</label><input id="f-adresse" type="text" placeholder="ex: 12 rue de la Paix, Bagnolet"></div>
+      <div class="field"><label>Photo URL</label><input id="f-photo" type="url" placeholder="https://...jpg"></div>
+      <div class="field"><label>Notes</label><textarea id="f-notes" placeholder="Impressions, points clés…"></textarea></div>
+      <div class="check-field">
+        <input type="checkbox" id="f-appele">
+        <label for="f-appele">Appelé ?</label>
+      </div>
+      <div class="field"><label>Date / heure RDV</label><input id="f-rdv" type="text" placeholder="ex: 28/04/2025 14:30"></div>
+      <button class="submit-btn" id="submitBtn" onclick="submitForm()">Ajouter l'annonce</button>
+      <button class="cancel-btn" onclick="resetForm()">Annuler</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <h1>mes annonces</h1>
+      <div class="toolbar">
+        <span class="count-tag" id="countTag"></span>
+        <button class="refresh-btn" onclick="loadRows()">↻ Actualiser</button>
+        <button class="export-btn" onclick="exportCSV()">exporter CSV</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:120px">Photo</th>
+            <th style="width:220px">Titre</th>
+            <th style="width:110px">Prix</th>
+            <th style="width:90px">€/m²</th>
+            <th style="width:78px">Surface</th>
+            <th style="width:60px">Pièces</th>
+            <th style="width:125px">Localisation</th>
+            <th style="width:180px">Adresse</th>
+            <th style="width:100px">Notes</th>
+            <th style="width:75px">Appelé ?</th>
+            <th style="width:130px">RDV</th>
+            <th style="width:68px"></th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="12" class="empty-state">// configure l'URL du script puis actualise</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script>
+const MAGIC = '##IMMO##';
+let rows = [];
+let editingId = null;
+
+// ── CONFIG ──
+function getScriptUrl() { return localStorage.getItem('immo-script-url') || ''; }
+function saveConfig() {
+  const url = document.getElementById('scriptUrl').value.trim();
+  if (!url) return;
+  localStorage.setItem('immo-script-url', url);
+  setStatus('✓ URL enregistrée.', 'ok');
+  loadRows();
+}
+
+// ── BOOKMARKLET ──
+function buildBookmarklet() {
+  const magic = MAGIC;
+  const code = `(function(){
+var t=(document.body.innerText||document.body.textContent||'').slice(0,12000);
+var imgs=[];
+var badImg=/logo|icon|sprite|avatar|flag|picto|pixel|blank|placeholder/i;
+var goodExt=/\\.(jpg|jpeg|png|webp)/i;
+document.querySelectorAll('img').forEach(function(i){
+  var s=i.src||i.getAttribute('data-src')||i.getAttribute('data-lazy-src')||i.getAttribute('data-original')||'';
+  if(s&&s.length>40&&goodExt.test(s)&&!badImg.test(s))imgs.push(s);
+});
+document.querySelectorAll('[style]').forEach(function(el){
+  var bg=el.style.backgroundImage||'';
+  var m=bg.match(/url\\([\"']?([^\"'\\)]+)[\"']?\\)/);
+  if(m&&m[1]&&goodExt.test(m[1])&&!badImg.test(m[1]))imgs.push(m[1]);
+});
+document.querySelectorAll('[data-bg],[data-background],[data-background-image]').forEach(function(el){
+  var s=el.getAttribute('data-bg')||el.getAttribute('data-background')||el.getAttribute('data-background-image')||'';
+  if(s&&goodExt.test(s)&&!badImg.test(s))imgs.push(s);
+});
+var seen={};imgs=imgs.filter(function(u){return seen[u]?false:(seen[u]=true);});
+var payload='${magic}'+JSON.stringify({url:location.href,title:document.title,text:t,imgs:imgs.slice(0,10)});
+navigator.clipboard.writeText(payload).then(function(){
+  alert('\\u2713 Annonce copiee !\\nReviens sur tracker-immo.html et colle avec Ctrl+V.');
+}).catch(function(){alert('Erreur clipboard');});
+})();`;
+  return 'javascript:' + encodeURIComponent(code);
+}
+document.getElementById('bm-link').href = buildBookmarklet();
+
+// ── PASTE ──
+document.getElementById('pasteZone').addEventListener('paste', e => {
+  handlePaste(e.clipboardData.getData('text')); e.preventDefault();
+});
+document.getElementById('pasteZone').addEventListener('click', function(){ this.focus(); });
+async function pasteFromClipboard(e) {
+  e.stopPropagation();
+  try { handlePaste(await navigator.clipboard.readText()); }
+  catch(err) { setStatus('Clique dans la zone puis Ctrl+V.', 'err'); }
+}
+function handlePaste(text) {
+  if (!text || !text.includes(MAGIC)) { setStatus('Données non reconnues — clique le favoris sur une annonce d\'abord.', 'err'); return; }
+  try { prefillForm(JSON.parse(text.slice(text.indexOf(MAGIC) + MAGIC.length))); }
+  catch(e) { setStatus('Erreur : ' + e.message, 'err'); }
+}
+
+// ── EXTRACTION ──
+function extract(payload) {
+  const t = payload.text || '';
+  let prix = null;
+  const pm = t.match(/(\d[\d\s]{2,8}\d)\s*(?:€|euros?)/i);
+  if (pm) { const v = parseInt(pm[1].replace(/\s/g,'')); if (v>10000&&v<50000000) prix = pm[1].trim().replace(/\s+/g,' ') + ' €'; }
+  let surface = null;
+  const sm = t.match(/(\d{2,4}[,.]?\d*)\s*m[²2]/i);
+  if (sm) surface = sm[1].replace(',','.') + ' m²';
+  let pieces = null;
+  const pc = t.match(/(\d)\s*pi[eè]ces?/i) || t.match(/\b[TtFf](\d)\b/) || t.match(/\b(\d)\s*P\b/);
+  if (pc) pieces = pc[1];
+  let loc = null;
+  // Dictionnaire code postal → ville
+  const CP = {
+    '75001':'Paris 1er','75002':'Paris 2e','75003':'Paris 3e','75004':'Paris 4e',
+    '75005':'Paris 5e','75006':'Paris 6e','75007':'Paris 7e','75008':'Paris 8e',
+    '75009':'Paris 9e','75010':'Paris 10e','75011':'Paris 11e','75012':'Paris 12e',
+    '75013':'Paris 13e','75014':'Paris 14e','75015':'Paris 15e','75016':'Paris 16e',
+    '75017':'Paris 17e','75018':'Paris 18e','75019':'Paris 19e','75020':'Paris 20e',
+    '92100':'Boulogne-Billancourt','92200':'Neuilly-sur-Seine','92300':'Levallois-Perret',
+    '92400':'Courbevoie','92500':'Rueil-Malmaison','92600':'Asnières-sur-Seine',
+    '92700':'Colombes','92800':'Puteaux','92110':'Clichy','92120':'Montrouge',
+    '92130':'Issy-les-Moulineaux','92140':'Clamart','92150':'Suresnes','92160':'Antony',
+    '92170':'Vanves','92190':'Meudon','92210':'Saint-Cloud','92220':'Bagneux',
+    '92230':'Gennevilliers','92240':'Malakoff','92250':'La Garenne-Colombes',
+    '92260':'Fontenay-aux-Roses','92270':'Bois-Colombes','92290':'Châtenay-Malabry',
+    '92310':'Sèvres','92320':'Châtillon','92330':'Sceaux','92340':'Bourg-la-Reine',
+    '92350':'Le Plessis-Robinson','92360':'Meudon-la-Forêt','92370':'Chaville',
+    '92380':'Garches','92390':'Villeneuve-la-Garenne','92410':'Ville-d\'Avray',
+    '92420':'Vaucresson','92430':'Marnes-la-Coquette',
+    '93100':'Montreuil','93110':'Rosny-sous-Bois','93120':'La Courneuve',
+    '93130':'Noisy-le-Sec','93140':'Bondy','93150':'Le Blanc-Mesnil',
+    '93160':'Noisy-le-Grand','93170':'Bagnolet','93190':'Livry-Gargan',
+    '93200':'Saint-Denis','93210':'Saint-Denis','93220':'Gagny',
+    '93230':'Romainville','93240':'Stains','93250':'Villemomble',
+    '93260':'Les Lilas','93270':'Sevran','93290':'Tremblay-en-France',
+    '93300':'Aubervilliers','93310':'Le Pré-Saint-Gervais','93320':'Les Pavillons-sous-Bois',
+    '93330':'Neuilly-sur-Marne','93340':'Le Raincy','93350':'Le Bourget',
+    '93360':'Neuilly-Plaisance','93370':'Montfermeil','93380':'Pierrefitte-sur-Seine',
+    '93390':'Clichy-sous-Bois','93400':'Saint-Ouen','93410':'Vaujours',
+    '93420':'Villepinte','93430':'Villetaneuse','93440':'Dugny',
+    '93450':'L\'Île-Saint-Denis','93460':'Gournay-sur-Marne','93470':'Coubron',
+    '93480':'Roissy-en-Brie','93490':'Villepinte','93500':'Pantin',
+    '93600':'Aulnay-sous-Bois','93700':'Drancy','93800':'Épinay-sur-Seine',
+    '94100':'Saint-Maur-des-Fossés','94110':'Arcueil','94120':'Fontenay-sous-Bois',
+    '94130':'Nogent-sur-Marne','94140':'Alfortville','94150':'Rungis',
+    '94160':'Saint-Mandé','94170':'Le Perreux-sur-Marne','94190':'Villeneuve-Saint-Georges',
+    '94200':'Ivry-sur-Seine','94210':'La Varenne-Saint-Hilaire','94220':'Charenton-le-Pont',
+    '94230':'Cachan','94240':'L\'Haÿ-les-Roses','94250':'Gentilly',
+    '94260':'Fresnes','94270':'Le Kremlin-Bicêtre','94290':'Villeneuve-le-Roi',
+    '94300':'Vincennes','94310':'Orly','94320':'Thiais','94340':'Joinville-le-Pont',
+    '94350':'Villiers-sur-Marne','94360':'Bry-sur-Marne','94370':'Sucy-en-Brie',
+    '94380':'Bonneuil-sur-Marne','94390':'Ormesson-sur-Marne','94400':'Vitry-sur-Seine',
+    '94410':'Saint-Maurice','94420':'Le Plessis-Trévise','94430':'Chennevières-sur-Marne',
+    '94440':'Marolles-en-Brie','94450':'Limeil-Brévannes','94460':'Valenton',
+    '94470':'Boissy-Saint-Léger','94480':'Ablon-sur-Seine','94490':'Ormesson-sur-Marne',
+    '94500':'Champigny-sur-Marne','94510':'La Queue-en-Brie','94520':'Mandres-les-Roses',
+    '94550':'Chevilly-Larue','94600':'Choisy-le-Roi','94700':'Maisons-Alfort',
+    '94800':'Villejuif','94880':'Noiseau',
+    '69001':'Lyon 1er','69002':'Lyon 2e','69003':'Lyon 3e','69004':'Lyon 4e',
+    '69005':'Lyon 5e','69006':'Lyon 6e','69007':'Lyon 7e','69008':'Lyon 8e',
+    '69009':'Lyon 9e',
+    '13001':'Marseille 1er','13002':'Marseille 2e','13003':'Marseille 3e',
+    '13004':'Marseille 4e','13005':'Marseille 5e','13006':'Marseille 6e',
+    '13007':'Marseille 7e','13008':'Marseille 8e','13009':'Marseille 9e',
+    '13010':'Marseille 10e','13011':'Marseille 11e','13012':'Marseille 12e',
+    '13013':'Marseille 13e','13014':'Marseille 14e','13015':'Marseille 15e',
+    '13016':'Marseille 16e',
+    '31000':'Toulouse','31100':'Toulouse','31200':'Toulouse','31300':'Toulouse',
+    '31400':'Toulouse','31500':'Toulouse',
+    '33000':'Bordeaux','33100':'Bordeaux','33200':'Bordeaux','33300':'Bordeaux',
+    '33800':'Bordeaux',
+    '44000':'Nantes','44100':'Nantes','44200':'Nantes','44300':'Nantes',
+    '59000':'Lille','59800':'Lille','59130':'Hellemmes','59160':'Lomme',
+    '67000':'Strasbourg','67100':'Strasbourg','67200':'Strasbourg',
+    '06000':'Nice','06100':'Nice','06200':'Nice','06300':'Nice',
+    '34000':'Montpellier','34070':'Montpellier','34080':'Montpellier','34090':'Montpellier',
+    '35000':'Rennes','35200':'Rennes','35700':'Rennes',
+    '76000':'Rouen','76100':'Rouen',
+    '67400':'Illkirch-Graffenstaden','67118':'Geispolsheim',
+  };
+
+  // Cherche tous les codes postaux dans texte + titre + URL
+  const allSources = (payload.title||'') + ' ' + t.slice(0,3000) + ' ' + (payload.url||'');
+  const cpMatches = allSources.match(/\b(\d{5})\b/g) || [];
+  // Prend le premier CP qui a une entrée dans le dictionnaire
+  let foundCp = null;
+  for (const cp of cpMatches) {
+    if (CP[cp]) { foundCp = cp; break; }
+  }
+  if (foundCp) {
+    loc = CP[foundCp];
+  } else if (cpMatches.length > 0) {
+    // CP inconnu : cherche le nom de ville à côté
+    const cp = cpMatches[0];
+    const around = (payload.title||'') + ' ' + t.slice(0,1000);
+    const before = around.match(new RegExp('([A-ZÉÈÊÀÂÙÛ][a-zéèêàâùûîôœ\\-]{2,}(?:\\s[A-ZÉÈÊÀÂÙÛ][a-zéèêàâùûîôœ\\-]+)?)\\s*' + cp));
+    const after  = around.match(new RegExp(cp + '\\s*([A-ZÉÈÊÀÂÙÛ][a-zéèêàâùûîôœ\\-]{2,}(?:\\s[A-ZÉÈÊÀÂÙÛ][a-zéèêàâùûîôœ\\-]+)?)'));
+    if (before) loc = before[1].trim() + ' (' + cp + ')';
+    else if (after) loc = after[1].trim() + ' (' + cp + ')';
+    else loc = cp;
+  } else {
+    // Pas de CP : fallback URL
+    const urlCity = (payload.url||'').match(/\/(?:vente|achat|location)\/([a-z][a-z0-9\-]+)(?:\/|\?)/i);
+    if (urlCity) loc = urlCity[1].replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+  }
+  let photo = null;
+  if (payload.imgs?.length) { const c = payload.imgs.filter(u=>/\.(jpg|jpeg|png|webp)/i.test(u)&&!/thumbnail|thumb|small|mini|_xs|50x|75x|100x|200x/i.test(u)); photo = c[0]||payload.imgs[0]; }
+  let titre = (payload.title||'').replace(/\s*[-|–]\s*(SeLoger|LeBonCoin|Bien'?ici|PAP|Logic.Immo|bienici|leboncoin).*/i,'').trim();
+  return { prix, surface, pieces, loc, photo, titre };
+}
+
+// ── FORM ──
+function prefillForm(payload) {
+  const d = extract(payload);
+  document.getElementById('f-url').value     = payload.url || '';
+  document.getElementById('f-titre').value   = d.titre || '';
+  document.getElementById('f-prix').value    = d.prix || '';
+  document.getElementById('f-surface').value = d.surface || '';
+  document.getElementById('f-pieces').value  = d.pieces || '';
+  document.getElementById('f-loc').value     = d.loc || '';
+  document.getElementById('f-photo').value   = d.photo || '';
+  document.getElementById('f-notes').value   = '';
+  document.getElementById('f-adresse').value  = '';
+  document.getElementById('f-appele').checked = false;
+  document.getElementById('f-rdv').value     = '';
+  editingId = null;
+  document.getElementById('submitBtn').textContent = 'Ajouter l\'annonce';
+  document.getElementById('formTitle').textContent = '✏ Vérifie et valide';
+  document.getElementById('formWrap').classList.add('visible');
+  const n = [d.prix,d.surface,d.pieces,d.loc].filter(Boolean).length;
+  setStatus(n>=3?'✓ '+n+'/4 champs extraits':n>0?'~ '+n+'/4 — complète les manquants':'! Extraction partielle — remplis manuellement', n>=3?'ok':'err');
+  document.getElementById('f-prix').focus();
+}
+
+function resetForm() {
+  document.getElementById('formWrap').classList.remove('visible');
+  ['f-url','f-titre','f-prix','f-surface','f-pieces','f-loc','f-adresse','f-photo','f-notes','f-rdv'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-appele').checked = false;
+  editingId = null; setStatus('','');
+}
+
+// ── API ──
+function apiUrl(params) {
+  const base = getScriptUrl();
+  const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+'='+encodeURIComponent(v||'')).join('&');
+  return base + '?' + qs;
+}
+async function apiGet(params) {
+  const res = await fetch(apiUrl(params));
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function loadRows() {
+  const scriptUrl = getScriptUrl();
+  if (!scriptUrl) return;
+  setStatus('Chargement…', 'loading');
+  try {
+    const data = await apiGet({ action: 'list' });
+    rows = (data.rows || []).reverse();
+    renderTable(); updateCount();
+    setStatus('', '');
+  } catch(e) { setStatus('Erreur : ' + e.message, 'err'); }
+}
+
+async function submitForm() {
+  const url  = document.getElementById('f-url').value.trim();
+  const prix = document.getElementById('f-prix').value.trim();
+  if (!url && !prix) { setStatus('Remplis au moins l\'URL ou le prix.', 'err'); return; }
+  if (!getScriptUrl()) { setStatus('Configure l\'URL du script d\'abord.', 'err'); return; }
+
+  const params = {
+    action:  editingId ? 'update' : 'add',
+    id:      editingId || Date.now(),
+    url,
+    titre:   document.getElementById('f-titre').value.trim(),
+    prix,
+    surface: document.getElementById('f-surface').value.trim(),
+    pieces:  document.getElementById('f-pieces').value.trim(),
+    loc:     document.getElementById('f-loc').value.trim(),
+    photo:   document.getElementById('f-photo').value.trim(),
+    notes:   document.getElementById('f-notes').value.trim(),
+    appele:  document.getElementById('f-appele').checked ? 'oui' : 'non',
+    rdv:     document.getElementById('f-rdv').value.trim(),
+    adresse: document.getElementById('f-adresse').value.trim(),
+  };
+
+  document.getElementById('submitBtn').disabled = true;
+  setStatus('Envoi vers Google Sheets…', 'loading');
+  try {
+    await apiGet(params);
+    setStatus('✓ Annonce ' + (editingId?'mise à jour':'ajoutée') + '.', 'ok');
+    resetForm(); loadRows();
+  } catch(e) { setStatus('Erreur : ' + e.message, 'err'); }
+  document.getElementById('submitBtn').disabled = false;
+}
+
+async function toggleAppele(id) {
+  const r = rows.find(x => String(x.id) === String(id));
+  if (!r) return;
+  const newVal = r.appele === 'oui' ? 'non' : 'oui';
+  try {
+    await apiGet({ action: 'update', ...rowToParams(r), appele: newVal });
+    r.appele = newVal;
+    renderTable();
+  } catch(e) { setStatus('Erreur : ' + e.message, 'err'); }
+}
+
+function rowToParams(r) {
+  return { id: r.id, url: r.url, titre: r.titre, prix: r.prix, surface: r.surface, pieces: r.pieces, loc: r.loc, adresse: r.adresse, notes: r.notes, photo: r.photo, appele: r.appele, rdv: r.rdv };
+}
+
+async function delRow(id) {
+  if (!confirm('Supprimer cette annonce ?')) return;
+  try { await apiGet({ action: 'delete', id }); setStatus('✓ Supprimé.', 'ok'); loadRows(); }
+  catch(e) { setStatus('Erreur suppression.', 'err'); }
+}
+
+function editRow(id) {
+  const r = rows.find(x => String(x.id) === String(id)); if (!r) return;
+  editingId = id;
+  document.getElementById('f-url').value     = r.url     || '';
+  document.getElementById('f-titre').value   = r.titre   || '';
+  document.getElementById('f-prix').value    = r.prix    || '';
+  document.getElementById('f-surface').value = r.surface || '';
+  document.getElementById('f-pieces').value  = r.pieces  || '';
+  document.getElementById('f-loc').value     = r.loc     || '';
+  document.getElementById('f-adresse').value = r.adresse || '';
+  document.getElementById('f-photo').value   = r.photo   || '';
+  document.getElementById('f-notes').value   = r.notes   || '';
+  document.getElementById('f-appele').checked = r.appele === 'oui' || r.appele === true || r.appele === 'TRUE';
+  document.getElementById('f-rdv').value     = r.rdv     || '';
+  document.getElementById('submitBtn').textContent = 'Mettre à jour';
+  document.getElementById('formTitle').textContent = '✏ Modifier';
+  document.getElementById('formWrap').classList.add('visible');
+  setStatus('', '');
+}
+
+// ── PRIX/M² ──
+function calcPrixM2(prix, surface) {
+  if (!prix || !surface) return '—';
+  const p = parseInt((prix + '').replace(/[\s€euros]/gi, '').replace(',', ''));
+  const s = parseFloat((surface + '').replace(',', '.').replace(/[^0-9.]/g, ''));
+  if (!p || !s || s === 0) return '—';
+  const ratio = Math.round(p / s);
+  return ratio.toLocaleString('fr-FR') + ' €/m²';
+}
+
+// ── RENDER ──
+function renderTable() {
+  const tbody = document.getElementById('tbody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty-state">// aucune annonce pour l\'instant</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => {
+    const photoCell = r.photo
+      ? `<img class="thumb" src="${r.photo}" alt="" onerror="this.outerHTML='<div class=\\'no-photo\\'>🏠</div>'">`
+      : `<div class="no-photo">🏠</div>`;
+    const titreCell = r.url
+      ? `<a class="titre-link" href="${r.url}" target="_blank" title="${r.titre||r.url}">${r.titre||r.url}</a>`
+      : `<span class="titre-text">${r.titre||'—'}</span>`;
+    const appele = r.appele === 'oui' || r.appele === true || String(r.appele).toUpperCase() === 'TRUE';
+    const appeleCell = `<button class="badge-appele ${appele?'oui':'non'}" onclick="toggleAppele('${r.id}')">${appele?'✓ oui':'✗ non'}</button>`;
+    const rdvCell = r.rdv ? `<span class="rdv-cell has-rdv">📅 ${r.rdv}</span>` : `<span class="rdv-cell">—</span>`;
+    const prixM2 = calcPrixM2(r.prix, r.surface);
+    const mapsUrl = r.adresse ? 'https://maps.google.com/?q=' + encodeURIComponent(r.adresse) : null;
+    const mapsCell = mapsUrl
+      ? `<a href="${mapsUrl}" target="_blank" class="maps-link" title="Ouvrir dans Google Maps">📍 ${r.adresse}</a>`
+      : `<span style="color:var(--text3);font-size:11px">—</span>`;
+    return `<tr>
+      <td>${photoCell}</td>
+      <td>${titreCell}</td>
+      <td><span class="price">${r.prix||'—'}</span></td>
+      <td><span class="price-m2">${prixM2}</span></td>
+      <td>${r.surface||'—'}</td>
+      <td>${r.pieces||'—'}</td>
+      <td>${r.loc||'—'}</td>
+      <td>${mapsCell}</td>
+      <td class="notes-cell">${r.notes||''}</td>
+      <td>${appeleCell}</td>
+      <td>${rdvCell}</td>
+      <td><div class="action-btns">
+        <button class="icon-btn edit" onclick="editRow('${r.id}')" title="Modifier">✏️</button>
+        <button class="icon-btn del" onclick="delRow('${r.id}')" title="Supprimer">×</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateCount() {
+  document.getElementById('countTag').textContent = rows.length ? rows.length + ' annonce' + (rows.length>1?'s':'') : '';
+}
+function exportCSV() {
+  if (!rows.length) return;
+  const h = ['URL','Titre','Prix','Surface','Pièces','Localisation','Notes','Appelé','RDV','Photo'];
+  const lines = rows.map(r => [r.url,r.titre,r.prix,r.surface,r.pieces,r.loc,r.notes,r.appele,r.rdv,r.photo].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+[h.join(','),...lines].join('\n')],{type:'text/csv;charset=utf-8;'}));
+  a.download = 'annonces_immo.csv'; a.click();
+}
+function setStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status' + (type ? ' ' + type : '');
+}
+
+// ── INIT ──
+const saved = getScriptUrl();
+if (saved) { document.getElementById('scriptUrl').value = saved; loadRows(); }
+</script>
+</body>
+</html>
