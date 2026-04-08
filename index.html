@@ -214,6 +214,8 @@ tbody td { padding: 10px 12px; vertical-align: middle; font-size: 13px; }
 .icon-btn:hover { color: var(--text); background: var(--surface2); }
 .icon-btn.del:hover { color: var(--red); background: var(--red-light); }
 .icon-btn.edit:hover { color: var(--blue); background: var(--blue-light); }
+.pending-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0.6; margin-left: 4px; animation: pulse 1s infinite; vertical-align: middle; }
+@keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:1} }
 
 /* Mobile card specifics */
 .card-title { font-size: 13px; font-weight: 500; color: var(--blue); text-decoration: none; line-height: 1.4; }
@@ -604,14 +606,30 @@ async function doSubmit(prefix, btnId, setS, reset) {
   const params = getFormData(prefix);
   if (!params.url && !params.prix) { setS('Remplis au moins l\'URL ou le prix.', 'err'); return; }
   if (!getScriptUrl()) { setS('Configure l\'URL du script d\'abord.', 'err'); return; }
-  document.getElementById(btnId).disabled = true;
-  setS('Envoi…', 'loading');
-  try {
-    await apiGet(params);
-    setS('✓ Annonce ' + (editingId?'mise à jour':'ajoutée') + '.', 'ok');
-    reset(); loadRows();
-  } catch(e) { setS('Erreur : ' + e.message, 'err'); }
-  document.getElementById(btnId).disabled = false;
+
+  // Optimistic update : affiche immédiatement sans attendre Google
+  if (editingId) {
+    const idx = rows.findIndex(r => String(r.id) === String(editingId));
+    if (idx !== -1) rows[idx] = { ...rows[idx], ...params };
+  } else {
+    rows.unshift({ ...params, _pending: true });
+  }
+  renderTable(); updateCount();
+  reset();
+  setS('✓ Ajouté — sync en cours…', 'ok');
+
+  // Envoi en arrière-plan
+  apiGet(params)
+    .then(() => {
+      // Retire le flag pending
+      const r = rows.find(x => String(x.id) === String(params.id));
+      if (r) delete r._pending;
+      renderTable();
+      setS('', '');
+    })
+    .catch(e => {
+      setS('⚠ Sync échouée — réessaie dans un moment.', 'err');
+    });
 }
 
 function editRowFill(r) {
@@ -666,16 +684,16 @@ async function loadRows() {
 async function toggleAppele(id) {
   const r = rows.find(x => String(x.id) === String(id)); if (!r) return;
   const newVal = r.appele === 'oui' ? 'non' : 'oui';
-  try {
-    await apiGet({ id:r.id, action:'update', url:r.url, titre:r.titre, prix:r.prix, surface:r.surface, pieces:r.pieces, loc:r.loc, adresse:r.adresse, notes:r.notes, photo:r.photo, rdv:r.rdv, appele:newVal });
-    r.appele = newVal; renderTable();
-  } catch(e) { setStatus('Erreur.', 'err'); }
+  r.appele = newVal; renderTable(); // immédiat
+  apiGet({ id:r.id, action:'update', url:r.url, titre:r.titre, prix:r.prix, surface:r.surface, pieces:r.pieces, loc:r.loc, adresse:r.adresse, notes:r.notes, photo:r.photo, rdv:r.rdv, appele:newVal })
+    .catch(() => { r.appele = newVal === 'oui' ? 'non' : 'oui'; renderTable(); setStatus('⚠ Sync échouée.', 'err'); });
 }
 
 async function delRow(id) {
   if (!confirm('Supprimer cette annonce ?')) return;
-  try { await apiGet({ action: 'delete', id }); setStatus('✓ Supprimé.', 'ok'); loadRows(); }
-  catch(e) { setStatus('Erreur.', 'err'); }
+  rows = rows.filter(r => String(r.id) !== String(id)); renderTable(); updateCount(); // immédiat
+  apiGet({ action: 'delete', id })
+    .catch(() => { setStatus('⚠ Suppression non sync.', 'err'); loadRows(); });
 }
 function editRow(id) { const r = rows.find(x => String(x.id) === String(id)); if (r) editRowFill(r); }
 
@@ -738,9 +756,9 @@ function renderTable() {
       </tr>`;
     }).join('');
   } else {
-    tbody.innerHTML = rows.map(r => `<tr>
+    tbody.innerHTML = rows.map(r => `<tr${r._pending?' style="opacity:0.7"':''}>
       <td>${photoHtml(r.photo)}</td>
-      <td>${r.url ? `<a class="titre-link" href="${r.url}" target="_blank">${r.titre||r.url}</a>` : (r.titre||'—')}</td>
+      <td>${r.url ? `<a class="titre-link" href="${r.url}" target="_blank">${r.titre||r.url}</a>` : (r.titre||'—')}${r._pending?'<span class="pending-dot" title="Sync en cours…"></span>':''}</td>
       <td><span class="price">${r.prix||'—'}</span></td>
       <td><span class="price-m2">${calcPrixM2(r.prix,r.surface)}</span></td>
       <td>${r.surface||'—'}</td>
